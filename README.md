@@ -1,56 +1,62 @@
 # **Finding Lane Lines on the Road** 
-[![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
 
-<img src="examples/laneLines_thirdPass.jpg" width="480" alt="Combined Image" />
+## Writeup Oana Gaskey
 
-Overview
+
 ---
 
-When we drive, we use our eyes to decide where to go.  The lines on the road that show us where the lanes are act as our constant reference for where to steer the vehicle.  Naturally, one of the first things we would like to do in developing a self-driving car is to automatically detect lane lines using an algorithm.
+**Finding Lane Lines on the Road**
 
-In this project you will detect lane lines in images using Python and OpenCV.  OpenCV means "Open-Source Computer Vision", which is a package that has many useful tools for analyzing images.  
+The goals / steps of this project are the following:
+* Make a pipeline that finds lane lines on the road
+* Reflect on your work in a written report
 
-To complete the project, two files will be submitted: a file containing project code and a file containing a brief write up explaining your solution. We have included template files to be used both for the [code](https://github.com/udacity/CarND-LaneLines-P1/blob/master/P1.ipynb) and the [writeup](https://github.com/udacity/CarND-LaneLines-P1/blob/master/writeup_template.md).The code file is called P1.ipynb and the writeup template is writeup_template.md 
+![alt text](test_images_output/lanes_marked_solidWhiteRight.jpg)
 
-To meet specifications in the project, take a look at the requirements in the [project rubric](https://review.udacity.com/#!/rubrics/322/view)
-
-
-Creating a Great Writeup
----
-For this project, a great writeup should provide a detailed response to the "Reflection" section of the [project rubric](https://review.udacity.com/#!/rubrics/322/view). There are three parts to the reflection:
-
-1. Describe the pipeline
-
-2. Identify any shortcomings
-
-3. Suggest possible improvements
-
-We encourage using images in your writeup to demonstrate how your pipeline works.  
-
-All that said, please be concise!  We're not looking for you to write a book here: just a brief description.
-
-You're not required to use markdown for your writeup.  If you use another method please just submit a pdf of your writeup. Here is a link to a [writeup template file](https://github.com/udacity/CarND-LaneLines-P1/blob/master/writeup_template.md). 
-
-
-The Project
 ---
 
-## If you have already installed the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) you should be good to go!   If not, you should install the starter kit to get started on this project. ##
+### Reflection
 
-**Step 1:** Set up the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) if you haven't already.
+### 1. Describe your pipeline. As part of the description, explain how you modified the draw_lines() function.
 
-**Step 2:** Open the code in a Jupyter Notebook
+My pipeline consists of 5 steps. 
 
-You will complete the project code in a Jupyter notebook.  If you are unfamiliar with Jupyter Notebooks, check out [Udacity's free course on Anaconda and Jupyter Notebooks](https://classroom.udacity.com/courses/ud1111) to get started.
+1. Color Mask
+In order to better distinguish the lane lines from other lines in the images, like curb or grass edges, I created a color mask.
+This mask consists of two components. The white mask is applied on the RGB image where all three color channels of a pixel have to be above 
+the threshold value of 200. This accurately selects the white markings on the pavement. The yellow mask is applied on the HSV converted image as the hue interval is easier to identify. The mask selects pixels with hue between 15 and 25 and saturation above 60. These values are found through trial and error from one of the provided pictures.
 
-Jupyter is an Ipython notebook where you can run blocks of code and see results interactively.  All the code for this project is contained in a Jupyter notebook. To start Jupyter in your browser, use terminal to navigate to your project directory and then run the following command at the terminal prompt (be sure you've activated your Python 3 carnd-term1 environment as described in the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) installation instructions!):
+2. Smoothen Image
+Once the image is masked and only white and yellow pixels are kept, color is no longer important so it is turned into grayscale for easier processing. To prepare for edge detection it is usefull to smoothen the image so artificial edges are not detected due to noise. For this the Gaussian blurr is applied with kernel 5 and further default values.
 
-`> jupyter notebook`
+3. Detect Edges
+Edges are detected using the Canny edge filter. For the differential value threshold 150 is used to only identify high intensity change. The low threshold is set to 50 to also detect pixels of lower change in intensity but who are along the high ones.
 
-A browser window will appear showing the contents of the current directory.  Click on the file called "P1.ipynb".  Another browser window will appear displaying the notebook.  Follow the instructions in the notebook to complete the project.  
+4. Select Region of Interest
+A polygon is defined based on the hypothesis that the camera is mounted on a fixed position on the car. A trapezoid is selected that starts at the bottom of the image and goes towards the center. The values are identified visually from the pictures.
 
-**Step 3:** Complete the project and submit both the Ipython notebook and the project writeup
+5. Find Lines from Edge Pixels
+Hough transform is used to form lines from colinear pixels. The Hough grid resolution is set to 2 pixels and the angular resolution to one radian. The minimum line length is 10 pixels and the maximum gap between two segments of the same line is 5 pixels. These values were found in the previous lessons. These lines are found with the "hough_lines" function that applies the transform on the edges in the region of interest.
+Once the lines found, they are drawn over the original image for confirmation.
 
-## How to write a README
-A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
 
+In order to draw a single line on the left and right lanes the draw_lines function is built as follows. Lines from Hough tranform are grouped in left and right category based on the computed slope. Negative slope means it's part of the left line, positive slope means it's part of the right line. Once grouped, a symetric approach is used for each side. I calculated the average slope of all the lines from one side and their standard deviation. In order to eliminate lines that are not aligned with the rest, only lines that have a consistent slope are kept. From the kept lines I calculated the average slope and intercept.
+In case there are no lines detected in the picture, or if the lines are not aligned well enough, default values are used. The default values for slope and intercept are taken from running the algorithm on "solidWhiteRight.jpg" picture.
+Using the slope and intercept of the line, the extrapolation is performed to match the hight of the region of interest. This is done by calculatig the intersection points of the line with the horizontal middle edge: y = 6*imshape[0]/10 and with the horizontal bottom line of  the image: y = imshape[0]
+Using the two intersection points, the extrapolated line is drawn on the original image. The line is semi transparent so a visual check can be made to verify if the line correspnds with the lane markings. Symmetrically the same logic is applied on the right side.
+For better visualization, the left line is green while the right one is blue.
+
+ 
+
+
+
+### 2. Identify potential shortcomings with your current pipeline
+
+
+The shortcoming of my algorithm is that the lines are jumpy. This happends especially on interrupted lines and around curves.
+Another potential problem could occur if the lanes are not as well marked as on the Californian highway and the color mask might need tunning.
+
+
+### 3. Suggest possible improvements to your pipeline
+
+An improvement could be to filter the slope and intercept values over time. I would do that by keeping a history of the last 10 cycles (images) and implement a low pass filter. In the low pass filter the last measurement (current image) would have the most weight but the past 9 would also be taken into consideration. In this way, the change in slope and intercept will not be so abrupt from one cycle to the next. 
