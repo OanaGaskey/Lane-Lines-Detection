@@ -178,3 +178,9 @@ Using the slope and intercept of the line, the extrapolation is performed to mat
 Using the two intersection points, the extrapolated line is drawn on the original image. The line is semi transparent so a visual check can be made to verify if the line correspnds with the lane markings. For better visualization, the left line is green while the right one is blue.
  
 ![seven](test_images_output/7.JPG)
+
+
+## Video Output
+
+Check out the restulting video! You can download the video here: [./test_videos_output/solidWhiteRight.mp4](./test_videos_output/solidWhiteRight.mp4)
+
