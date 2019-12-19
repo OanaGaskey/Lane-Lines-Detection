@@ -1,7 +1,8 @@
-#Finding Lane Lines 
+# Finding Lane Lines 
+
 Computer Vision algorithm to detect straight lane lines markings on road using OpenCV Image Processing, Color Masks, Canny Edge Detection and Hough Transform. 
 
-
+![one](test_images_output/1.JPG)
 ![GIF](test_images_output/lanelines.gif)
 
 One of the most fundamental tasks in computer vision for autonomous driving is lane detection on road. Lane lines are painted for humans to see and follow while driving. In a very similar way, an autonomous vehicle that uses human designed infrastructure, needs to *see* the lane markings to steer accordingly and follow the road trajectory.
