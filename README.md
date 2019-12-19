@@ -2,8 +2,7 @@
 
 Computer Vision algorithm to detect straight lane lines markings on road using OpenCV Image Processing, Color Masks, Canny Edge Detection and Hough Transform. 
 
-![one](test_images_output/1.JPG)
-![GIF](test_images_output/lanelines.gif)
+![GIF](test_images_output/LaneLines.gif)
 
 One of the most fundamental tasks in computer vision for autonomous driving is lane lines detection on road. Lane lines are painted for humans to see and follow while driving. In a very similar way, an autonomous vehicle that uses human designed infrastructure, needs to *see* the lane markings to steer accordingly and follow the road trajectory.
 
@@ -12,7 +11,7 @@ The result is a processed video that highlights the lane lines on the paved road
 
 With the positions of the lane lines identified, the vehicle's offset from the lane's center can be calculated and feed a PD controller to compute the necessary steering angle. While only the lane lines detection is the scope of this project, my steering algorithm is implemented [here](https://github.com/OanaGaskey/PID-Controller)  
  
-This project is implemented in Python and uses OpenCV image processing library. The source code can be found in the *finding_lane_lines.ipynb* Jupyter Notebook file above. 
+This project is implemented in Python and uses OpenCV image processing library. The source code can be found in the `finding_lane_lines.ipynb` Jupyter Notebook file above. 
 The starter code for this project is provided by Udacity and can be found [here](https://github.com/udacity/CarND-LaneLines-P1).
 
 
@@ -24,7 +23,7 @@ Looking at the video recording from the car, one of the most defining characteri
 ![one](test_images_output/1.JPG)
 
 
-Defining color masks allows pixels selection in a image based on their color. The intention is to select only white and yellow pixels and set the rest of the image to black.
+Defining color masks allows color based pixels selection in an image. The intention is to select only white and yellow pixels and set the rest of the image to black.
 
 
 ```
@@ -49,11 +48,11 @@ Defining color masks allows pixels selection in a image based on their color. Th
 
 Image processing techniques can be applied to RGB colorspace but for color selection, the HSV space is much better. Hue, Saturation and Value are easier to work with mainly because the *hue* value carries the color of each pixel.
 
-The yellow mask is built from the HSV image to select pixels with hue between 15 and 25 and saturation above 60. These values were identified from the images to be corresponding to the yellow lane markings.
+The yellow mask is built from the HSV image to select pixels with hue between `15` and `25` and saturation above `60`. These values were identified from the images to be corresponding to the yellow lane markings.
 The white mask is built from the RGB image where all three color channels of a pixel have to be above 
-the threshold value of 200. This accurately selects the white markings on the pavement.
+the threshold value of `200`. This accurately selects the white markings on the pavement.
 
-The two masks are applied using *bitwise or* so both white and yellow pixels are kept. All other pixels are set to black. With this selection all lane lines pixels are correctly selected. There is also noise, from dried grass that corresponds to the yellow collor and white cars on the highway. This will be removed with further processing.
+The two masks are applied using `bitwise_or` so both white and yellow pixels are kept. All other pixels are set to black. With this selection all lane lines pixels are correctly selected. There is also some noise left in the picture, mainly from dried grass that corresponds to the yellow collor and white cars on the highway. This will be removed with further processing.
 
 ![two](test_images_output/2.JPG)
 
@@ -96,13 +95,14 @@ For lane line detection purposes edge detection is used. It is much better to wo
 ![four](test_images_output/4.JPG)
 
 
-Edges are detected using the [Canny Edge Filter](http://fourier.eng.hmc.edu/e161/lectures/canny/node1.html) appliend to a grayscale image. The Canny Edge Filter is essentially computing the gradient across the image with respect to x and y directions, the resulting matrix representing the difference in intensity between adjecent pixels.
-The algorithm will first detect strong edge (strong gradient) pixels above the high_threshold (150 for our images), and reject pixels below the low_threshold (here chosen to be 50). Next, pixels with values between the low_threshold and high_threshold will be included as long as they are connected to strong edges. The output edges is a binary image with white pixels tracing out the detected edges and black everywhere else.
+Edges are detected using the [Canny Edge Filter](http://fourier.eng.hmc.edu/e161/lectures/canny/node1.html) appliend to a grayscale image. The Canny Edge Filter is essentially computing the gradient across the image with respect to `x` and `y` directions, the resulting matrix representing the difference in intensity between adjecent pixels.
+
+The algorithm will first detect strong edge (strong gradient) pixels above the `high_threshold`, `150` for our images, and reject pixels below the `low_threshold`, here chosen to be `50`. Next, pixels with values between the `low_threshold` and `high_threshold` will be included as long as they are connected to strong edges. The output edges is a binary image with white pixels tracing out the detected edges and black everywhere else.
 
 
 ## Select Region of Interest
 
-In the edge processing resulting image, the lane line edges are correctly identified, but there are a lot of other unnecessary edges as well. These are mainly from objects located outside of the road, or maybe edges defining boundaries of other cars. To eliminate this noise, I took advantage of the constant region of interest in the image.
+In the edge processing resulting image, the lane line edges are correctly identified, but there are a lot of other unnecessary edges as well. These are mainly from objects located outside the road, or maybe edges defining boundaries of other cars. To eliminate this noise, I took advantage of the constant region of interest in the image.
 
 ```
     ### select region of interest###
@@ -119,7 +119,6 @@ A polygon is defined based on the hypothesis that the camera is mounted on a fix
 
 The `region_of_interest` function creates a mask using `cv2.fillPoly(mask, vertices, 255)`. `mask` is initially a zeroes matrix of the same size as the grayscale image. The `fillPoly` creates a polygon based on the given vertices and sets all the pixels within to `255`. The mask is applied using `bitwise_and` to the grayscale image.
 
-
 ![five](test_images_output/5.JPG)
 
 
@@ -127,11 +126,11 @@ The `region_of_interest` function creates a mask using `cv2.fillPoly(mask, verti
 
 The whole reason the edge detection was performed was to obtain pixels from which line equations can be calculated. [Hough Transform](https://en.wikipedia.org/wiki/Hough_transform) is futher used to form lines from colinear pixels.
 
-The Hough Transform takes pixels from the x,y coordinates of image space and transforms them to hough space. A the straight line in image space `y = mx + b` can be represented as a point `(b, m)` in the hough space. Similarly, in hough space each image space point is transformed into a line, this line represents all the image space lines that can go through the selected point. 
+The Hough Transform takes pixels from the `(x, y)` coordinates of image space and transforms them to hough space. A the straight line in image space `y = mx + b` can be represented as a point `(b, m)` in the hough space. Similarly, in hough space each image space point is transformed into a line, this line represents all the image space lines that can go through the selected point. 
 
 When multiple lines intersect in one point (or larger defined area) in the hough space, this indicates that the corresponding points in the image space are coliniar.
 
-The hough space as `(b, m)` rises some problems for vertical lines in the image space, for which m is infinite. For this reason, the hough space was chosen to be represented as `(rho, theta)`.
+The hough space as `(b, m)` rises some problems for vertical lines in the image space, for which `m` is infinite. For this reason, the hough space was chosen to be represented as `(rho, theta)`.
 
 `rho` is the distance from the origin to the closest point on the straight line, and `theta` is the angle between the `x` axis and the line connecting the origin with that closest point.
 
@@ -154,10 +153,10 @@ It is therefore possible to associate with each line of the image a pair of `(rh
     line_img = cv2.HoughLinesP(masked_edges, rho, theta, threshold, np.array([]), minLineLength=min_line_len, maxLineGap=max_line_gap)
 ```
 
-When using the Hough Transform to find lines from coliniar pixels, `rho` and `theta` are defined to allow for some flexibility. `rho` as the grid resolution in pixels, is set to 2 pixels. 
-`theta` as the grid angular resolution in radians and I chose it to be one radian.
+When using the Hough Transform to find lines from coliniar pixels, `rho` and `theta` are defined to allow for some flexibility. `rho` as the grid resolution in pixels, is set to `2`. 
+`theta` as the grid angular resolution in radians and I chose it to be `1`.
 
-The minimum length is 10 pixels to consider that they form a line. The maximum gap between two segments of the same line is 5 pixels. 
+The minimum length is `10` pixels to consider that they form a line. The maximum gap between two segments of the same line is `5` pixels. 
 
 These lines are computed with the `HoughLinesP` function that applies the transform on the edges in the region of interest. Once the lines found, they are drawn over the original image for confirmation.
 
@@ -179,6 +178,3 @@ Using the slope and intercept of the line, the extrapolation is performed to mat
 Using the two intersection points, the extrapolated line is drawn on the original image. The line is semi transparent so a visual check can be made to verify if the line correspnds with the lane markings. For better visualization, the left line is green while the right one is blue.
  
 ![seven](test_images_output/7.JPG)
-
-
-
