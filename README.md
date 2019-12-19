@@ -5,10 +5,12 @@ Computer Vision algorithm to detect straight lane lines markings on road using O
 ![one](test_images_output/1.JPG)
 ![GIF](test_images_output/lanelines.gif)
 
-One of the most fundamental tasks in computer vision for autonomous driving is lane detection on road. Lane lines are painted for humans to see and follow while driving. In a very similar way, an autonomous vehicle that uses human designed infrastructure, needs to *see* the lane markings to steer accordingly and follow the road trajectory.
+One of the most fundamental tasks in computer vision for autonomous driving is lane lines detection on road. Lane lines are painted for humans to see and follow while driving. In a very similar way, an autonomous vehicle that uses human designed infrastructure, needs to *see* the lane markings to steer accordingly and follow the road trajectory.
 
 In this project I implemented a computer vision algorithm that processes real data recorded with the front facing camera of a vehicle driving on a California highway.
-The result is a processed video that highlights the lane lines on the paved road. With the positions of the lane lines identified, the vehicle's offset from the lane's center can be calculated and feed a PD controller to compute the necessary steering angle. While only the lane lines detection is the scope of this project, my steering algorithm is implemented [here](https://github.com/OanaGaskey/PID-Controller)  
+The result is a processed video that highlights the lane lines on the paved road. 
+
+With the positions of the lane lines identified, the vehicle's offset from the lane's center can be calculated and feed a PD controller to compute the necessary steering angle. While only the lane lines detection is the scope of this project, my steering algorithm is implemented [here](https://github.com/OanaGaskey/PID-Controller)  
  
 This project is implemented in Python and uses OpenCV image processing library. The source code can be found in the *finding_lane_lines.ipynb* Jupyter Notebook file above. 
 The starter code for this project is provided by Udacity and can be found [here](https://github.com/udacity/CarND-LaneLines-P1).
@@ -67,9 +69,8 @@ Once the image is masked and only white and yellow pixels are kept, color is no 
     #to get rid of imperfections, apply the gaussian blur
     #kernel chosen 5, no other values are changed the implicit ones work just fine
     kernel_size = 5
-    blurred_gray_img = gaussian_blur(gray_img, kernel_size)
+    blurred_gray_img = cv2.GaussianBlur(gray_img, (kernel_size, kernel_size), 0)    
 ```
-
 
 ![three](test_images_output/3.JPG)
 
@@ -84,7 +85,8 @@ For lane line detection purposes edge detection is used. It is much better to wo
 ```
     ### detect edges ###
     #choose values for te Canny Edge Detection Filter
-    #for the differentioal value threshold chosen is 150 which is pretty high given that the max difference between black and white is 255
+    #for the differentioal value threshold chosen is 150 which is pretty high given that the max 
+    #difference between black and white is 255
     #low threshold of 50 which takes adjacent differential of 50 pixels as part of the edge
     low_threshold = 50
     high_threshold = 150
@@ -94,7 +96,7 @@ For lane line detection purposes edge detection is used. It is much better to wo
 ![four](test_images_output/4.JPG)
 
 
-Edges are detected using the Canny Edge Filter appliend on a grayscale image. The Canny Edge Filter is essentially computing the gradient across the image with respect to x and y directions, the resulting matrix representing the difference in intensity between adjecent pixels.
+Edges are detected using the [Canny Edge Filter](http://fourier.eng.hmc.edu/e161/lectures/canny/node1.html) appliend to a grayscale image. The Canny Edge Filter is essentially computing the gradient across the image with respect to x and y directions, the resulting matrix representing the difference in intensity between adjecent pixels.
 The algorithm will first detect strong edge (strong gradient) pixels above the high_threshold (150 for our images), and reject pixels below the low_threshold (here chosen to be 50). Next, pixels with values between the low_threshold and high_threshold will be included as long as they are connected to strong edges. The output edges is a binary image with white pixels tracing out the detected edges and black everywhere else.
 
 
@@ -122,17 +124,61 @@ The `region_of_interest` function creates a mask using `cv2.fillPoly(mask, verti
 
 
 ## Find Lines from Edge Pixels
-Hough transform is used to form lines from colinear pixels. The Hough grid resolution is set to 2 pixels and the angular resolution to one radian. The minimum line length is 10 pixels and the maximum gap between two segments of the same line is 5 pixels. These values were found in the previous lessons. These lines are found with the "hough_lines" function that applies the transform on the edges in the region of interest.
-Once the lines found, they are drawn over the original image for confirmation.
+
+The whole reason the edge detection was performed was to obtain pixels from which line equations can be calculated. [Hough Transform](https://en.wikipedia.org/wiki/Hough_transform) is futher used to form lines from colinear pixels.
+
+The Hough Transform takes pixels from the x,y coordinates of image space and transforms them to hough space. A the straight line in image space `y = mx + b` can be represented as a point `(b, m)` in the hough space. Similarly, in hough space each image space point is transformed into a line, this line represents all the image space lines that can go through the selected point. 
+
+When multiple lines intersect in one point (or larger defined area) in the hough space, this indicates that the corresponding points in the image space are coliniar.
+
+The hough space as `(b, m)` rises some problems for vertical lines in the image space, for which m is infinite. For this reason, the hough space was chosen to be represented as `(rho, theta)`.
+
+`rho` is the distance from the origin to the closest point on the straight line, and `theta` is the angle between the `x` axis and the line connecting the origin with that closest point.
+
+It is therefore possible to associate with each line of the image a pair of `(rho, theta)`. With this approach, a straight line in image space is `rho = x * cos(theta) + y * sin(theta)`
+
+```
+    ### find lines from edges pixels ###
+    #define parameters for the Hough transform
+    #Hough grid resolution in pixels
+    rho = 2
+    #Hough grid angular resolution in radians 
+    theta = np.pi/180 
+    #minimum number of sines intersecting in a cell, collinear points to form a line
+    threshold = 15
+    #minimum length of a line in pixels
+    min_line_len = 10 
+    #maximum gap in pixels between segments to be considered part of the same line 
+    max_line_gap = 5    
+    #apply Hough transform to color masked grayscale blurred image
+    line_img = cv2.HoughLinesP(masked_edges, rho, theta, threshold, np.array([]), minLineLength=min_line_len, maxLineGap=max_line_gap)
+```
+
+When using the Hough Transform to find lines from coliniar pixels, `rho` and `theta` are defined to allow for some flexibility. `rho` as the grid resolution in pixels, is set to 2 pixels. 
+`theta` as the grid angular resolution in radians and I chose it to be one radian.
+
+The minimum length is 10 pixels to consider that they form a line. The maximum gap between two segments of the same line is 5 pixels. 
+
+These lines are computed with the `HoughLinesP` function that applies the transform on the edges in the region of interest. Once the lines found, they are drawn over the original image for confirmation.
+
+![fivep](test_images_output/5p.JPG)
 
 
-In order to draw a single line on the left and right lanes the draw_lines function is built as follows. Lines from Hough tranform are grouped in left and right category based on the computed slope. Negative slope means it's part of the left line, positive slope means it's part of the right line. Once grouped, a symetric approach is used for each side. I calculated the average slope of all the lines from one side and their standard deviation. In order to eliminate lines that are not aligned with the rest, only lines that have a consistent slope are kept. From the kept lines I calculated the average slope and intercept.
-In case there are no lines detected in the picture, or if the lines are not aligned well enough, default values are used. The default values for slope and intercept are taken from running the algorithm on "solidWhiteRight.jpg" picture.
-Using the slope and intercept of the line, the extrapolation is performed to match the hight of the region of interest. This is done by calculatig the intersection points of the line with the horizontal middle edge: y = 6.imshape[0]/10 and with the horizontal bottom line of  the image: y = imshape[0]
-Using the two intersection points, the extrapolated line is drawn on the original image. The line is semi transparent so a visual check can be made to verify if the line correspnds with the lane markings. Symmetrically the same logic is applied on the right side.
-For better visualization, the left line is green while the right one is blue.
+## Extrapolate Lines
+
+In order to draw a single line on the left and one on the right lane lines, the `draw_lines` function is built to extrapolate from the multiple individiual lines found using the Hough Transform. 
+
+Lines from Hough tranform are grouped in left and right category based on the computed slope. Once grouped, the average slope is calculated together with the standard deviation. 
+In order to eliminate lines that are not aligned with the rest, only lines that have a consistent slope are kept. 
+
+Using the slope and intercept of the line, the extrapolation is performed to match the hight of the region of interest. This is done by calculatig the intersection points of the line with the horizontal middle edge: `y = 6.imshape[0]/10` and with the horizontal bottom line of  the image: `y = imshape[0]`
+
+![six](test_images_output/6.JPG)
+
+
+Using the two intersection points, the extrapolated line is drawn on the original image. The line is semi transparent so a visual check can be made to verify if the line correspnds with the lane markings. For better visualization, the left line is green while the right one is blue.
  
-
+![seven](test_images_output/7.JPG)
 
 
 
