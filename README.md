@@ -30,17 +30,22 @@ Defining color masks allows color based pixels selection in an image. The intent
     ### create a color mask ###
     #convert from RGB to HSV
     hsv_img = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+
     #define two color masks for yellow and white
     #white mask is applied in RGB color space, it's easier to tune the values
     #values from 200 to 255 on all colors are picked from trial and error
     mask_white = cv2.inRange(img, (200,200,200), (255, 255, 255))
+
     #yellow mask is done in HSV color space since it's easier to identify the hue of a certain color
     #values from 15 to 25 for hue and above 60 for saturation are picked from trial and error
     mask_yellow = cv2.inRange(hsv_img, (15,60,20), (25, 255, 255))
+
     #combine the two masks, both yellow and white pixels are of interest
     color_mask = cv2.bitwise_or(mask_white, mask_yellow)
+
     #make a copy of the original image
     masked_img = np.copy(img)
+    
     #pixels that are not part of the mask(neither white or yellow) are made black
     masked_img[color_mask == 0] = [0,0,0]
     
