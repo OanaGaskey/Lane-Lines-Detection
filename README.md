@@ -70,6 +70,7 @@ Once the image is masked and only white and yellow pixels are kept, color is no 
     ### smoothen image ###
     #turn the masked image to grayscale for easier processing
     gray_img = grayscale(masked_img)
+
     #to get rid of imperfections, apply the gaussian blur
     #kernel chosen 5, no other values are changed the implicit ones work just fine
     kernel_size = 5
@@ -146,14 +147,19 @@ It is therefore possible to associate with each line of the image a pair of `(rh
     #define parameters for the Hough transform
     #Hough grid resolution in pixels
     rho = 2
+
     #Hough grid angular resolution in radians 
     theta = np.pi/180 
+
     #minimum number of sines intersecting in a cell, collinear points to form a line
     threshold = 15
+
     #minimum length of a line in pixels
     min_line_len = 10 
+
     #maximum gap in pixels between segments to be considered part of the same line 
-    max_line_gap = 5    
+    max_line_gap = 5   
+     
     #apply Hough transform to color masked grayscale blurred image
     line_img = cv2.HoughLinesP(masked_edges, rho, theta, threshold, np.array([]), minLineLength=min_line_len, maxLineGap=max_line_gap)
 ```
