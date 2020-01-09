@@ -112,7 +112,7 @@ In the edge processing resulting image, the lane line edges are correctly identi
 
 ```
     ### select region of interest###
-    #define a polygon that should frme the road given that the camera is in a fixed position
+    #define a polygon that should frame the road given that the camera is in a fixed position
     #polygon covers the bottom left and bottom right points of the picture
     #with the other two top points it forms a trapezoid that points towards the center of the image
     #the polygon is relative to the image's size
@@ -159,7 +159,7 @@ It is therefore possible to associate with each line of the image a pair of `(rh
 
     #maximum gap in pixels between segments to be considered part of the same line 
     max_line_gap = 5   
-     
+
     #apply Hough transform to color masked grayscale blurred image
     line_img = cv2.HoughLinesP(masked_edges, rho, theta, threshold, np.array([]), minLineLength=min_line_len, maxLineGap=max_line_gap)
 ```
