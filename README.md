@@ -165,7 +165,7 @@ It is therefore possible to associate with each line of the image a pair of `(rh
 ```
 
 When using the Hough Transform to find lines from coliniar pixels, `rho` and `theta` are defined to allow for some flexibility. `rho` as the grid resolution in pixels, is set to `2`. 
-`theta` as the grid angular resolution in radians and I chose it to be `1`.
+`theta` as the grid angular resolution in radians and I chose it to be the equivalent of `1` degree.
 
 The minimum length is `10` pixels to consider that they form a line. The maximum gap between two segments of the same line is `5` pixels. 
 
